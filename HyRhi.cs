@@ -479,7 +479,7 @@ namespace HyRhi
             {
                 return polyline.ToPolyline();
             }
-            var vertices = Enumerable.Range(0, 50).Select(i => curve.PointAt(i / 50.0 * curve.Domain.Length + curve.Domain.Min)).Select(p => p.ToVector3()).ToList();
+            var vertices = Enumerable.Range(0, 20).Select(i => curve.PointAt(i / 20.0 * curve.Domain.Length + curve.Domain.Min)).Select(p => p.ToVector3()).ToList();
             return new Polyline(vertices);
         }
 
@@ -548,10 +548,5 @@ namespace HyRhi
 
             return vertices;
         }
-    }
-    public class PointTPair
-    {
-        public Vector3 Point;
-        public double Parameter;
     }
 }
