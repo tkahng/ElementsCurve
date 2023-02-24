@@ -47,19 +47,7 @@ namespace HyRhi
             return polygon;
         }
 
-        public static Polygon ToPolygon(this rg.Curve curve)
-        {
-            if (curve.IsPolyline() && curve is rg.PolylineCurve pcrv)
-            {
-                return pcrv.ToPolyline().ToPolygon();
-            }
-            if (curve.TryGetPolyline(out rg.Polyline polyline))
-            {
-                return polyline.ToPolygon();
-            }
-            var vertices = Enumerable.Range(0, 100).Select(i => curve.PointAt(i / 100.0 * curve.Domain.Length + curve.Domain.Min)).Select(p => p.ToVector3()).ToList();
-            return new Polygon(vertices);
-        }
+
 
         public static HyparPlane ToHyparPlane(this rg.Plane p)
         {
@@ -482,6 +470,19 @@ namespace HyRhi
             var vertices = Enumerable.Range(0, 20).Select(i => curve.PointAt(i / 20.0 * curve.Domain.Length + curve.Domain.Min)).Select(p => p.ToVector3()).ToList();
             return new Polyline(vertices);
         }
+        public static Polygon ToPolygon(this rg.Curve curve)
+        {
+            if (curve.IsPolyline() && curve is rg.PolylineCurve pcrv)
+            {
+                return pcrv.ToPolyline().ToPolygon();
+            }
+            if (curve.TryGetPolyline(out rg.Polyline polyline))
+            {
+                return polyline.ToPolygon();
+            }
+            var vertices = Enumerable.Range(0, 20).Select(i => curve.PointAt(i / 20.0 * curve.Domain.Length + curve.Domain.Min)).Select(p => p.ToVector3()).ToList();
+            return new Polygon(vertices);
+        }
 
         public static Profile ToProfile(this rg.BrepFace face)
         {
@@ -538,7 +539,7 @@ namespace HyRhi
                 if (edge.IsLinear(0.2))
                 {
                     vertices.Add(edge.PointAtStart.ToVector3());
-                    vertices.Add(edge.PointAtEnd.ToVector3());
+                    // vertices.Add(edge.PointAtEnd.ToVector3());
                 }
                 else
                 {
@@ -548,5 +549,63 @@ namespace HyRhi
 
             return vertices;
         }
+        public static double PolygonDistanceTo(this Vector3 vector, Polygon polygon, out Vector3 closestPoint)
+        {
+            var pointOnPolygonPlane = vector.Project(polygon.Plane());
+            if (polygon.Contains(pointOnPolygonPlane, out _))
+            {
+                closestPoint = pointOnPolygonPlane;
+                return vector.DistanceTo(pointOnPolygonPlane);
+            }
+            else
+            {
+                var closest = double.MaxValue;
+                closestPoint = default(Vector3);
+
+                foreach (var line in polygon.Segments())
+                {
+                    var distance = vector.DistanceTo(line, out var thisClosestPoint);
+                    if (distance < closest)
+                    {
+                        closest = distance;
+                        closestPoint = thisClosestPoint;
+                    }
+                }
+
+                return closest;
+            }
+        }
+        public static double PolygonGetParameterAt(this Polygon polygon, Vector3 point, out int Seg)
+        {
+            Seg = -1;
+            Line? segment;
+            var segments = polygon.Segments();
+            segment = segments.FirstOrDefault(x => x.PointOnLine(point, true));
+
+            if (segment == null)
+            {
+                var closestPoints = segments.Select(s=>point.ClosestPointOn(s)).Select(s=>point.DistanceTo(s));
+                var min = closestPoints.Min();
+                var idx = closestPoints.ToList().IndexOf(min);
+                if (idx == -1) return -1;
+                segment = segments.ToList().ElementAt(idx);
+            }
+
+            var segmentIndex = polygon.Segments().ToList().IndexOf(segment);
+            Seg = segmentIndex;
+            var segmentsLength = polygon.Segments().Where((x, i) => i < segmentIndex).Sum(x => x.Length());
+            var pointLength = segmentsLength + point.DistanceTo(segment.Start);
+
+            return pointLength / polygon.Length();
+        }
+        public static Polygon ForceZAxisOrientation(this Polygon profile)
+        {
+            if (profile.Normal().Dot(Vector3.ZAxis) < 0)
+            {
+                return profile.Reversed();
+            }
+            return profile;
+        }
     }
+
 }

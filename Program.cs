@@ -13,6 +13,7 @@ namespace ElementsCurve
         static void Main()
         {
             AdaptiveCurve();
+            AdaptiveCurveFix();
         }
 
         static void AdaptiveCurve()
@@ -34,6 +35,46 @@ namespace ElementsCurve
                     Console.WriteLine(param);
                 }
             }
+        }
+        static void AdaptiveCurveFix()
+        {
+            string keyName = "adaptivecurve.3dm";
+            var doc = File3dm.Read(keyName);
+            var objects = doc.Objects;
+            var polygons = new List<Polygon>();
+            foreach (var obj in objects)
+            {
+                var brep = (rg.Brep)obj.Geometry;
+                var guidePolygon = brep.Faces[0].OuterLoop.To3dCurve().ToPolygon().ForceZAxisOrientation();
+
+                IList<Vector3> vertices = brep.Faces[0].GetBrepEdgeVertices();
+                Polygon poly = GuidedPolygonFromVertices(guidePolygon, vertices);
+                polygons.Add(poly);
+            }
+            Console.WriteLine($"{polygons.Count}");
+            var newfile = new File3dm();
+            foreach (var p in polygons)
+            {
+                newfile.Objects.AddPolyline(p.ToRgPolyline());
+            }
+            newfile.Write($"{System.Guid.NewGuid()}.3dm",7);
+        }
+
+        private static Polygon GuidedPolygonFromVertices(Polygon guidePolygon, IList<Vector3> vertices)
+        {
+            IList<(Vector3 point, double param)> pairs = new List<(Vector3 point, double param)>();
+            for (int i = 0; i < vertices.Count; i++)
+            {
+                Vector3 closestPoint;
+                var dist = vertices[i].PolygonDistanceTo(guidePolygon, out closestPoint);
+                // Console.WriteLine(dist);
+                var param = guidePolygon.PolygonGetParameterAt(closestPoint, out var seg);
+                pairs.Add((vertices[i], param));
+                Console.WriteLine($"dist: {dist}, param: {param}, seg: {seg}");
+            }
+            var pts = pairs.OrderBy(p => p.param).Select(p => p.point).ToList();
+            var poly = new Polygon(pts);
+            return poly;
         }
     }
 }
