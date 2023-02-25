@@ -627,6 +627,17 @@ namespace HyRhi
 
             return pointLength / polygon.Length();
         }
+        public static double PolygonGetParameterAt4(this Polygon polygon, Vector3 point, out int Seg)
+        {
+            var segments = polygon.Segments();
+            var segment = segments.Select(s => new { line = s, dist = point.DistanceTo(point.ClosestPointOn(s)) }).OrderBy(p => p.dist).First().line;
+            var segmentIndex = segments.ToList().IndexOf(segment);
+            Seg = segmentIndex;
+            var segmentsLength = segments.Where((x, i) => i < segmentIndex).Sum(x => x.Length());
+            var pointLength = segmentsLength + point.ClosestPointOn(segment).DistanceTo(segment.Start);
+
+            return pointLength / polygon.Length();
+        }
         public static Polygon ForceZAxisOrientation(this Polygon profile)
         {
             if (profile.Normal().Dot(Vector3.ZAxis) < 0)

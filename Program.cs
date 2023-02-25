@@ -42,12 +42,14 @@ namespace ElementsCurve
             var doc = File3dm.Read(keyName);
             var objects = doc.Objects;
             var polygons = new List<Polygon>();
+            var model = new Model();
             foreach (var obj in objects)
             {
                 var brep = (rg.Brep)obj.Geometry;
                 var guidePolygon = brep.Faces[0].OuterLoop.To3dCurve().ToPolygon().ForceZAxisOrientation();
-
+                model.AddElement(new ModelCurve(guidePolygon));
                 IList<Vector3> vertices = brep.Faces[0].GetBrepEdgeVertices();
+                model.AddElement(new ModelPoints(vertices));
                 Polygon poly = GuidedPolygonFromVertices(guidePolygon, vertices);
                 polygons.Add(poly);
             }
@@ -58,6 +60,7 @@ namespace ElementsCurve
                 newfile.Objects.AddPolyline(p.ToRgPolyline());
             }
             newfile.Write($"{System.Guid.NewGuid()}.3dm",7);
+            model.ToJson("model.json");
         }
 
         private static Polygon GuidedPolygonFromVertices(Polygon guidePolygon, IList<Vector3> vertices)
