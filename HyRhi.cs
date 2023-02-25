@@ -467,7 +467,7 @@ namespace HyRhi
             {
                 return polyline.ToPolyline();
             }
-            var vertices = Enumerable.Range(0, 20).Select(i => curve.PointAt(i / 20.0 * curve.Domain.Length + curve.Domain.Min)).Select(p => p.ToVector3()).ToList();
+            var vertices = Enumerable.Range(0, 50).Select(i => curve.PointAt(i / 50.0 * curve.Domain.Length + curve.Domain.Min)).Select(p => p.ToVector3()).ToList();
             return new Polyline(vertices);
         }
         public static Polygon ToPolygon(this rg.Curve curve)
@@ -480,7 +480,7 @@ namespace HyRhi
             {
                 return polyline.ToPolygon();
             }
-            var vertices = Enumerable.Range(0, 20).Select(i => curve.PointAt(i / 20.0 * curve.Domain.Length + curve.Domain.Min)).Select(p => p.ToVector3()).ToList();
+            var vertices = Enumerable.Range(0, 50).Select(i => curve.PointAt(i / 50.0 * curve.Domain.Length + curve.Domain.Min)).Select(p => p.ToVector3()).ToList();
             return new Polygon(vertices);
         }
 
@@ -584,17 +584,46 @@ namespace HyRhi
 
             if (segment == null)
             {
-                var closestPoints = segments.Select(s=>point.ClosestPointOn(s)).Select(s=>point.DistanceTo(s));
+                var closestPoints = segments.Select(s => point.ClosestPointOn(s)).Select(s => point.DistanceTo(s));
+                // var pairs = segments.Select(s=>new {line = s, dist = point.DistanceTo(point.ClosestPointOn(s))}).OrderBy(p=>p.dist).First();
                 var min = closestPoints.Min();
                 var idx = closestPoints.ToList().IndexOf(min);
                 if (idx == -1) return -1;
                 segment = segments.ToList().ElementAt(idx);
+                // if(pairs.dist > )
+                // segment = pairs.line;
             }
 
             var segmentIndex = polygon.Segments().ToList().IndexOf(segment);
             Seg = segmentIndex;
             var segmentsLength = polygon.Segments().Where((x, i) => i < segmentIndex).Sum(x => x.Length());
             var pointLength = segmentsLength + point.DistanceTo(segment.Start);
+
+            return pointLength / polygon.Length();
+        }
+        public static double PolygonGetParameterAt2(this Polygon polygon, Vector3 point, out int Seg)
+        {
+            Seg = -1;
+            var segments = polygon.Segments();
+            var dist = point.PolygonDistanceTo(polygon, out var cp);
+            var segment = segments.FirstOrDefault(x => x.PointOnLine(cp, true));
+            if(segment == null) return -1;
+            // var segment = segments.Select(s => new { line = s, dist = point.DistanceTo(point.ClosestPointOn(s)) }).OrderBy(p => p.dist).First().line;
+            var segmentIndex = segments.ToList().IndexOf(segment);
+            Seg = segmentIndex;
+            var segmentsLength = segments.Where((x, i) => i < segmentIndex).Sum(x => x.Length());
+            var pointLength = segmentsLength + point.ClosestPointOn(segment).DistanceTo(segment.Start);
+
+            return pointLength / polygon.Length();
+        }
+        public static double PolygonGetParameterAt3(this Polygon polygon, Vector3 point, out int Seg)
+        {
+            var segments = polygon.Segments();
+            var segment = segments.Select(s => new { line = s, dist = point.DistanceTo(point.ClosestPointOn(s)) }).OrderBy(p => p.dist).First().line;
+            var segmentIndex = segments.ToList().IndexOf(segment);
+            Seg = segmentIndex;
+            var segmentsLength = segments.Where((x, i) => i < segmentIndex).Sum(x => x.Length());
+            var pointLength = segmentsLength + point.ClosestPointOn(segment).DistanceTo(segment.Start);
 
             return pointLength / polygon.Length();
         }

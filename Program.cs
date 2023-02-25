@@ -69,8 +69,10 @@ namespace ElementsCurve
                 var dist = vertices[i].PolygonDistanceTo(guidePolygon, out closestPoint);
                 // Console.WriteLine(dist);
                 var param = guidePolygon.PolygonGetParameterAt(closestPoint, out var seg);
-                pairs.Add((vertices[i], param));
+                var param2 = guidePolygon.PolygonGetParameterAt3(vertices[i], out var seg2);
+                pairs.Add((vertices[i], param2));
                 Console.WriteLine($"dist: {dist}, param: {param}, seg: {seg}");
+                Console.WriteLine($"dist: {dist}, param: {param2}, seg: {seg2}");
             }
             var pts = pairs.OrderBy(p => p.param).Select(p => p.point).ToList();
             var poly = new Polygon(pts);
